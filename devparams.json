@@ -1,0 +1,50 @@
+[
+    {
+        "ParameterKey" : "InstanceName",
+        "ParameterValue" : "MyTest01"
+    },
+    {
+        "ParameterKey" : "KeyName",
+        "ParameterValue" : "myec2key"
+    },
+    {
+        "ParameterKey" : "InstanceType",
+        "ParameterValue" : "t2.micro"
+    },
+    {
+        "ParameterKey": "Software",
+        "ParameterValue" : "httpd-2.2|php-5.3"
+    },
+    {
+        "ParameterKey" : "Services",
+        "ParameterValue" : "Content Management"
+    },
+    {
+        "ParameterKey" : "Environment",
+        "ParameterValue" : "dev"
+    },
+    {
+        "ParameterKey" : "Owner",
+        "ParameterValue" : "Org X"
+    },
+    {
+        "ParameterKey" : "Customer",
+        "ParameterValue" : "SDC"
+    },
+    {
+        "ParameterKey" : "NodeName",
+        "ParameterValue" : "N/A"
+    },
+    {
+        "ParameterKey": "ClusterName",
+        "ParameterValue" : "N/A"
+    },
+    {
+        "ParameterKey" : "SecurityGroup",
+        "ParameterValue" : "sg-d50184af"
+    },
+    {
+        "ParameterKey" : "WebServerPort",
+        "ParameterValue" : "80"
+    }
+]
