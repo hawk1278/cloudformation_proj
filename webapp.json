@@ -131,6 +131,63 @@
               ]
               ]}}
         }
-     }
+     },
+     
+      "Instance02" : {
+          "Type" : "AWS::EC2::Instance",
+          "Condition" : "CreateProdResources",
+          "Metadata" : {
+              "AWS::CloudFormation::Init" : { 
+                  "config": { 
+                      "packages" : { 
+                          "yum" : { 
+                              "httpd" : [], "php" : [], "python-pip" : [], "python-virtualenv" : []
+                            }
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
+                            }
+                        },
+                        "files" : {},
+                        "sources" : {},
+                        "users" : {
+                            "rohara" : {
+                                "groups" : [ "rohara","wheel"],
+                                "homeDir": "/home/rohara"
+                            }
+                        }
+                  }
+                }
+            }, 
+        "Properties" : {
+              "Tags" : [
+                  {"Key": "Name", "Value" : { "Ref": "InstanceName"} },
+                  {"Key":"Owner", "Value" : {"Ref": "Owner"} },
+                  {"Key":"Customer", "Value":{"Ref":"Customer"} },
+                  {"Key" : "Software", "Value" :{"Ref" : "Software"} },
+                  {"Key":"Services", "Value":{"Ref":"Services"} },
+                  {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
+                  {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
+                  {"Key":"Environment", "Value":{"Ref":"Environment"} }
+              ],
+              "KeyName" : { "Ref" : "KeyName" },
+              "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
+              "SubnetId" : { "Ref" : "Subnet" },
+              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+              "InstanceType" : {"Ref" : "InstanceType" },
+              "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                  "#!/bin/bash \n",
+                  "yum update -y aws-cfn-bootstrap \n",
+                  "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
+                  "  -r Instance01",
+                  "  --region ", { "Ref":"AWS::Region" },"\n"
+              ]
+              ]}}
+        }
+     },
+
+
+     "WebAppELB01" : {}
     }  
 }
