@@ -77,12 +77,9 @@
     },
     "Conditions": {
         "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
-        "CreateDevResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "dev"]},
+        "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "dev"]},
         "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "test"]}        
     },
-
-
-
     "Resources": {
       "Instance01" : {
           "Type" : "AWS::EC2::Instance",
@@ -92,7 +89,7 @@
                   "config": { 
                       "packages" : { 
                           "yum" : { 
-                              "httpd" : [], "php" : [], "python-pip" : [], "python-virtualenv" : []
+                              "httpd" : [], "php" : []
                             }
                         },
                         "services" : {
@@ -103,10 +100,6 @@
                         "files" : {},
                         "sources" : {},
                         "users" : {
-                            "rohara" : {
-                                "groups" : [ "rohara","wheel"],
-                                "homeDir": "/home/rohara"
-                            }
                         }
                   }
                 }
@@ -144,7 +137,55 @@
                   "config": { 
                       "packages" : { 
                           "yum" : { 
-                              "httpd" : [], "php" : [], "python-pip" : [], "python-virtualenv" : []
+                              "httpd" : [], "php" : []
+                            }
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
+                            }
+                        },
+                        "files" : {},
+                        "sources" : {},
+                        "users" : {
+                        }
+                  }
+                }
+            }, 
+        "Properties" : {
+              "Tags" : [
+                  {"Key":"Owner", "Value" : {"Ref": "Owner"} },
+                  {"Key":"Customer", "Value":{"Ref":"Customer"} },
+                  {"Key" : "Software", "Value" :{"Ref" : "Software"} },
+                  {"Key":"Services", "Value":{"Ref":"Services"} },
+                  {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
+                  {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
+                  {"Key":"Environment", "Value":{"Ref":"Environment"} }
+              ],
+              "KeyName" : { "Ref" : "KeyName" },
+              "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
+              "SubnetId" : { "Ref" : "Subnet" },
+              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+              "InstanceType" : {"Ref" : "InstanceType" },
+              "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                  "#!/bin/bash \n",
+                  "yum update -y aws-cfn-bootstrap \n",
+                  "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
+                  "  -r Instance02",
+                  "  --region ", { "Ref":"AWS::Region" },"\n"
+              ]
+              ]}}
+        }
+     },
+    "DevInstance01" : {
+          "Type" : "AWS::EC2::Instance",
+          "Condition" : "CreateDevResources",
+          "Metadata" : {
+              "AWS::CloudFormation::Init" : { 
+                  "config": { 
+                      "packages" : { 
+                          "yum" : { 
+                              "httpd" : [], "php" : [], "python27-pip" : [], "python27-virtualenv" : []
                             }
                         },
                         "services" : {
@@ -156,7 +197,7 @@
                         "sources" : {},
                         "users" : {
                             "rohara" : {
-                                "groups" : [ "rohara","wheel"],
+                                "groups" : [ "wheel"],
                                 "homeDir": "/home/rohara"
                             }
                         }
@@ -182,95 +223,21 @@
                   "#!/bin/bash \n",
                   "yum update -y aws-cfn-bootstrap \n",
                   "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
-                  "  -r Instance01",
+                  "  -r DevInstance01",
                   "  --region ", { "Ref":"AWS::Region" },"\n"
               ]
               ]}}
         }
-     },
-
-     "ELB01" :{
-         "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
-         "Properties" : {
-             "SecurityGroups" : [{"Ref":"WebAppServerLoadBalancerSecuityGroup"}],
-             "LoadBalancerName" : {"Fn:Join": ["-", ["pds",{"Ref":"Services"}] ]},
-             "AvailabilityZones" : { "Fn::GetAZs" : ""},
-             "Instances" : [
-                 {"Ref":"Instance01"}
-                 ],
-             "Listeners" : [{
-                 "LoadBalancerPort" : "80",
-                 "InstancePort" : "80",
-                 "Protocol" : "HTTP"
-             },
-             {
-                 "LoadBalancerPort" : "443",
-                 "InstancePort" : "443",
-                 "Protocol" : "HTTPS",
-                 "SSLCertificateID" : "ARN for SSL cert"
-             }],
-             "HealthCheck" :{
-                 "Target" : {"Fn:Join" : ["", ["/site"] ]},
-                 "HealthyThreshold" : "",
-                 "UnhealthyThreshold" : "",
-                 "Timeout" : ""
-             }
-         }
-     },
-     "WebAppServerLoadBalancerSecurityGroup" : {
-
      }
-    },
-    "DevInstance01" : {
-          "Type" : "AWS::EC2::Instance",
-          "Condition" : "CreateDevResources",
-          "Metadata" : {
-              "AWS::CloudFormation::Init" : { 
-                  "config": { 
-                      "packages" : { 
-                          "yum" : { 
-                              "httpd" : [], "php" : [], "python-pip" : [], "python-virtualenv" : []
-                            }
-                        },
-                        "services" : {
-                            "sysvinit" : {
-                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
-                            }
-                        },
-                        "files" : {},
-                        "sources" : {},
-                        "users" : {
-                            "rohara" : {
-                                "groups" : [ "roharadev","wheel"],
-                                "homeDir": "/home/roharadev"
-                            }
-                        }
-                  }
-                }
-            }, 
-        "Properties" : {
-              "Tags" : [
-                  {"Key":"Owner", "Value" : {"Ref": "Owner"} },
-                  {"Key":"Customer", "Value":{"Ref":"Customer"} },
-                  {"Key" : "Software", "Value" :{"Ref" : "Software"} },
-                  {"Key":"Services", "Value":{"Ref":"Services"} },
-                  {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
-                  {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
-                  {"Key":"Environment", "Value":{"Ref":"Environment"} }
-              ],
-              "KeyName" : { "Ref" : "KeyName" },
-              "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
-              "SubnetId" : { "Ref" : "Subnet" },
-              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
-              "InstanceType" : {"Ref" : "InstanceType" },
-              "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
-                  "#!/bin/bash \n",
-                  "yum update -y aws-cfn-bootstrap \n",
-                  "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
-                  "  -r Instance01",
-                  "  --region ", { "Ref":"AWS::Region" },"\n"
-              ]
-              ]}}
-        }
-     }  
+  },
+  "Outputs" : {
+      "Instance01" : {
+          "Value": { "Fn::GetAtt" : ["Instance01","PublicIp"] },
+          "Description" : "Public IP of Instance01"                   
+      },
+      "Insance02": {
+          "Value":{ "Fn::GetAtt": ["Instance02", "PublicIp"]},
+          "Description" : "Public IP of Instance02"          
+      }
+  }
 }
