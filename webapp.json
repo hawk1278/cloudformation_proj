@@ -63,9 +63,7 @@
       },
       "Subnet" : {
           "Description" : "Valid subnet within the VPC",
-          "Type" : "String",
-          "AllowedValues" : ["subnet-3c2a6a4a","subnet-e130a6cb","subnet-fcb826a4"],
-          "Default" : "subnet-3c2a6a4a"
+          "Type" : "CommaDelimitedList"
       }
     },
     "Mappings": {
@@ -138,7 +136,7 @@
                 ],
                 "KeyName" : { "Ref" : "KeyName" },
                 "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
-                "SubnetId" : { "Ref" : "Subnet" },
+                "SubnetId" : { "Fn::Select" : ["0",{"Ref":"Subnet"}]},
                 "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
                 "InstanceType" : {"Ref" : "InstanceType" },
                 "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
@@ -208,7 +206,7 @@
               ],
               "KeyName" : { "Ref" : "KeyName" },
               "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
-              "SubnetId" : { "Ref" : "Subnet" },
+              "SubnetId" : { "Fn::Select" : ["1",{"Ref":"Subnet"}]},
               "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
               "InstanceType" : {"Ref" : "InstanceType" },
               "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
