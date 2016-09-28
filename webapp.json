@@ -5,7 +5,7 @@
     "Parameters": {
      "InstanceName" : {
          "Description" : "Name of the instance deployed.",
-         "Type" : "String"
+         "Type" : "CommaDelimitedList"
      },
       "KeyName" : {
           "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
@@ -76,118 +76,144 @@
         }
     },
     "Conditions": {
-        "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]}
+        "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
+        "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "dev"]},
+        "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "test"]}        
     },
     "Resources": {
+        "Instance01" : {
+            "Type" : "AWS::EC2::Instance",
+            "Condition" : "CreateProdResources",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : { 
+                    "config": { 
+                        "packages" : { 
+                            "yum" : { 
+                                "httpd" : [], "php" : []
+                                }
+                            },
+                            "services" : {
+                                "sysvinit" : {
+                                    "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
+                                }
+                            },
+                            "files" : {},
+                            "sources" : {},
+                            "users" : {
+                            }
+                    }
+                    }
+                }, 
+            "Properties" : {
+                "Tags" : [
+                    {"Key":"Owner", "Value" : {"Ref": "Owner"} },
+                    {"Key":"Customer", "Value":{"Ref":"Customer"} },
+                    {"Key" : "Software", "Value" :{"Ref" : "Software"} },
+                    {"Key":"Services", "Value":{"Ref":"Services"} },
+                    {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
+                    {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
+                    {"Key":"InstanceName", "Value" : {"Fn::Select" : ["0",{"Ref":"InstanceName"}]}},
+                    {"Key":"Environment", "Value":{"Ref":"Environment"} }
+                ],
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
+                "SubnetId" : { "Ref" : "Subnet" },
+                "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                    "#!/bin/bash \n",
+                    "yum update -y aws-cfn-bootstrap \n",
+                    "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
+                    "  -r Instance01",
+                    "  --region ", { "Ref":"AWS::Region" },"\n"
+                ]
+                ]}}
+            }
+        },
+    "Instance02" : {
+          "Type" : "AWS::EC2::Instance",
+          "Condition" : "CreateProdResources",
+          "Metadata" : {
+              "AWS::CloudFormation::Init" : { 
+                  "config": { 
+                      "packages" : { 
+                          "yum" : { 
+                              "httpd" : [], "php" : []
+                            }
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
+                            }
+                        },
+                        "files" : {},
+                        "sources" : {},
+                        "users" : {
+                        }
+                  }
+                }
+            }, 
+        "Properties" : {
+              "Tags" : [
+                  {"Key":"Owner", "Value" : {"Ref": "Owner"} },
+                  {"Key":"Customer", "Value":{"Ref":"Customer"} },
+                  {"Key" : "Software", "Value" :{"Ref" : "Software"} },
+                  {"Key":"Services", "Value":{"Ref":"Services"} },
+                  {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
+                  {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
+                  {"Key":"InstanceName", "Value" : {"Fn::Select" : ["1",{"Ref":"InstanceName"}]}},                  
+                  {"Key":"Environment", "Value":{"Ref":"Environment"} }
+              ],
+              "KeyName" : { "Ref" : "KeyName" },
+              "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
+              "SubnetId" : { "Ref" : "Subnet" },
+              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+              "InstanceType" : {"Ref" : "InstanceType" },
+              "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                  "#!/bin/bash \n",
+                  "yum update -y aws-cfn-bootstrap \n",
+                  "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
+                  "  -r Instance02",
+                  "  --region ", { "Ref":"AWS::Region" },"\n"
+              ]
+              ]}}
+        }
+    },
+    "ELB01" : {
+        "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+        "Properties" : {
+            "AvailabilityZones" : { "Fn::GetAZs" : ""},
+            "Instances" : [{"Ref":"Instance01"}, {"Ref":"Instance02"}],
+            "Listeners" : [
+                {
+                    "LoadBalancerPort" : "80",
+                    "InstancePort" : {},
+                    "Protocol" : "HTTP"
+                }
+            ],
+            "SecurityGroups" : ["sg-d50184af"], 
+            "HealthCheck" : {
+                "Target" : {
+                    "Fn::Join" : [ "", [ "HTTP:", { "Ref" : "WebServerPort" }, "/" ] ]
+                },
+                "HealthyThreshold" : "3",
+                "UnhealthyThreshold" : "5",
+                "Interval" : "30",
+                "Timeout" : "5"
+            }
+        }
+    }
+},
+
+  "Outputs" : {
       "Instance01" : {
-          "Type" : "AWS::EC2::Instance",
-          "Condition" : "CreateProdResources",
-          "Metadata" : {
-              "AWS::CloudFormation::Init" : { 
-                  "config": { 
-                      "packages" : { 
-                          "yum" : { 
-                              "httpd" : [], "php" : [], "python-pip" : [], "python-virtualenv" : []
-                            }
-                        },
-                        "services" : {
-                            "sysvinit" : {
-                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
-                            }
-                        },
-                        "files" : {},
-                        "sources" : {},
-                        "users" : {
-                            "rohara" : {
-                                "groups" : [ "rohara","wheel"],
-                                "homeDir": "/home/rohara"
-                            }
-                        }
-                  }
-                }
-            }, 
-        "Properties" : {
-              "Tags" : [
-                  {"Key": "Name", "Value" : { "Ref": "InstanceName"} },
-                  {"Key":"Owner", "Value" : {"Ref": "Owner"} },
-                  {"Key":"Customer", "Value":{"Ref":"Customer"} },
-                  {"Key" : "Software", "Value" :{"Ref" : "Software"} },
-                  {"Key":"Services", "Value":{"Ref":"Services"} },
-                  {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
-                  {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
-                  {"Key":"Environment", "Value":{"Ref":"Environment"} }
-              ],
-              "KeyName" : { "Ref" : "KeyName" },
-              "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
-              "SubnetId" : { "Ref" : "Subnet" },
-              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
-              "InstanceType" : {"Ref" : "InstanceType" },
-              "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
-                  "#!/bin/bash \n",
-                  "yum update -y aws-cfn-bootstrap \n",
-                  "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
-                  "  -r Instance01",
-                  "  --region ", { "Ref":"AWS::Region" },"\n"
-              ]
-              ]}}
-        }
-     },
-     
-      "Instance02" : {
-          "Type" : "AWS::EC2::Instance",
-          "Condition" : "CreateProdResources",
-          "Metadata" : {
-              "AWS::CloudFormation::Init" : { 
-                  "config": { 
-                      "packages" : { 
-                          "yum" : { 
-                              "httpd" : [], "php" : [], "python-pip" : [], "python-virtualenv" : []
-                            }
-                        },
-                        "services" : {
-                            "sysvinit" : {
-                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
-                            }
-                        },
-                        "files" : {},
-                        "sources" : {},
-                        "users" : {
-                            "rohara" : {
-                                "groups" : [ "rohara","wheel"],
-                                "homeDir": "/home/rohara"
-                            }
-                        }
-                  }
-                }
-            }, 
-        "Properties" : {
-              "Tags" : [
-                  {"Key": "Name", "Value" : { "Ref": "InstanceName"} },
-                  {"Key":"Owner", "Value" : {"Ref": "Owner"} },
-                  {"Key":"Customer", "Value":{"Ref":"Customer"} },
-                  {"Key" : "Software", "Value" :{"Ref" : "Software"} },
-                  {"Key":"Services", "Value":{"Ref":"Services"} },
-                  {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
-                  {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
-                  {"Key":"Environment", "Value":{"Ref":"Environment"} }
-              ],
-              "KeyName" : { "Ref" : "KeyName" },
-              "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
-              "SubnetId" : { "Ref" : "Subnet" },
-              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
-              "InstanceType" : {"Ref" : "InstanceType" },
-              "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
-                  "#!/bin/bash \n",
-                  "yum update -y aws-cfn-bootstrap \n",
-                  "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
-                  "  -r Instance01",
-                  "  --region ", { "Ref":"AWS::Region" },"\n"
-              ]
-              ]}}
-        }
-     },
+          "Value": { "Fn::GetAtt" : ["Instance01","PublicIp"] },
+          "Description" : "Public IP of Instance01"                   
+      },
+      "Insance02": {
+          "Value":{ "Fn::GetAtt": ["Instance02", "PublicIp"]},
+          "Description" : "Public IP of Instance02"          
+      }
+  }
 
-
-     "WebAppELB01" : {}
-    }  
 }

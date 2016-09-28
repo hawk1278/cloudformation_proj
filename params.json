@@ -1,7 +1,7 @@
 [
     {
         "ParameterKey" : "InstanceName",
-        "ParameterValue" : "MyTest01"
+        "ParameterValue" : "web01,web02,web03"
     },
     {
         "ParameterKey" : "KeyName",

@@ -5,7 +5,7 @@
     "Parameters": {
      "InstanceName" : {
          "Description" : "Name of the instance deployed.",
-         "Type" : "String"
+         "Type" : "CommaDelimitedList"
      },
       "KeyName" : {
           "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
@@ -112,6 +112,7 @@
                   {"Key":"Services", "Value":{"Ref":"Services"} },
                   {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
                   {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
+                  {"Key":"InstanceName", "Value" : {"Fn::Select" : ["0",{"Ref":"InstanceName"}]}},
                   {"Key":"Environment", "Value":{"Ref":"Environment"} }
               ],
               "KeyName" : { "Ref" : "KeyName" },
@@ -160,6 +161,7 @@
                   {"Key":"Services", "Value":{"Ref":"Services"} },
                   {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
                   {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
+                  {"Key":"InstanceName", "Value" : {"Fn::Select" : ["1",{"Ref":"InstanceName"}]}},                  
                   {"Key":"Environment", "Value":{"Ref":"Environment"} }
               ],
               "KeyName" : { "Ref" : "KeyName" },
@@ -196,10 +198,6 @@
                         "files" : {},
                         "sources" : {},
                         "users" : {
-                            "rohara" : {
-                                "groups" : [ "wheel"],
-                                "homeDir": "/home/rohara"
-                            }
                         }
                   }
                 }
@@ -212,6 +210,7 @@
                   {"Key":"Services", "Value":{"Ref":"Services"} },
                   {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
                   {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
+                  {"Key":"InstanceName", "Value" : {"Fn::Select" : ["1",{"Ref":"InstanceName"}]}},                                    
                   {"Key":"Environment", "Value":{"Ref":"Environment"} }
               ],
               "KeyName" : { "Ref" : "KeyName" },
