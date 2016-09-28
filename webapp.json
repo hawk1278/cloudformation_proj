@@ -94,10 +94,31 @@
                             },
                             "services" : {
                                 "sysvinit" : {
-                                    "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
-                                }
+                                    "httpd" : { "enabled" : "true", "ensureRunning" : "true" },
+                                    "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
+                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]}
+              }                                
                             },
-                            "files" : {},
+                            "files" : {
+                                    "/var/www/html/index.html" : {
+                                        "content" : { "Fn::Join" : ["\n", [
+                                            "<h1>Hello World!</h1>"
+                                    ]]},
+                                    "mode"    : "000644",
+                                    "owner"   : "root",
+                                    "group"   : "root"
+                                    },
+                                    "/etc/cfn/cfn-hup.conf" : {
+                                        "content" : { "Fn::Join" : ["", [
+                                            "[main]\n",
+                                            "stack=", { "Ref" : "AWS::StackId" }, "\n",
+                                            "region=", { "Ref" : "AWS::Region" }, "\n"
+                                            ]]},
+                                            "mode"    : "000400",
+                                            "owner"   : "root",
+                                            "group"   : "root" 
+                                    }                                
+                            },
                             "sources" : {},
                             "users" : {
                             }
@@ -143,10 +164,31 @@
                         },
                         "services" : {
                             "sysvinit" : {
-                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" }
+                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" },
+                                "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
+                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]}
+              }                            
+                        },
+                        "files" : {
+                            "/var/www/html/index.html" : {
+                                "content" : { "Fn::Join" : ["\n", [
+                                    "<h1>Hello World.</h1>"
+                            ]]},
+                            "mode"    : "000644",
+                            "owner"   : "root",
+                            "group"   : "root"
+                            },
+                            "/etc/cfn/cfn-hup.conf" : {
+                                "content" : { "Fn::Join" : ["", [
+                                    "[main]\n",
+                                    "stack=", { "Ref" : "AWS::StackId" }, "\n",
+                                    "region=", { "Ref" : "AWS::Region" }, "\n"
+                                    ]]},
+                                    "mode"    : "000400",
+                                    "owner"   : "root",
+                                    "group"   : "root" 
                             }
                         },
-                        "files" : {},
                         "sources" : {},
                         "users" : {
                         }
@@ -187,11 +229,11 @@
             "Listeners" : [
                 {
                     "LoadBalancerPort" : "80",
-                    "InstancePort" : {},
+                    "InstancePort" : {"Ref":"WebServerPort"},
                     "Protocol" : "HTTP"
                 }
             ],
-            "SecurityGroups" : ["sg-d50184af"], 
+            "SecurityGroups" : [{"Ref":"SecurityGroup"}], 
             "HealthCheck" : {
                 "Target" : {
                     "Fn::Join" : [ "", [ "HTTP:", { "Ref" : "WebServerPort" }, "/" ] ]
