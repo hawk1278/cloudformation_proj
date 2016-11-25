@@ -1,13 +1,5 @@
 [
-    {
-        "ParameterKey" : "InstanceName",
-        "ParameterValue" : "db01,db02,web03"
-    },
-    {
-        "ParameterKey" : "Subnet",
-        "ParameterValue" : "subnet-fcb826a4,subnet-3c2a6a4a"
-    },
-    {
+     {
         "ParameterKey" : "KeyName",
         "ParameterValue" : "myec2key"
     },
@@ -25,7 +17,7 @@
     },
     {
         "ParameterKey" : "Environment",
-        "ParameterValue" : "prod"
+        "ParameterValue" : "dev"
     },
     {
         "ParameterKey" : "Owner",
@@ -34,10 +26,6 @@
     {
         "ParameterKey" : "Customer",
         "ParameterValue" : "SDC"
-    },
-    {
-        "ParameterKey" : "NodeName",
-        "ParameterValue" : "N/A"
     },
     {
         "ParameterKey": "ClusterName",

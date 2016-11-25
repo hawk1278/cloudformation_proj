@@ -3,10 +3,6 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "",
     "Parameters": {
-     "InstanceName" : {
-         "Description" : "Name of the instance deployed.",
-         "Type" : "CommaDelimitedList"
-     },
       "KeyName" : {
           "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
           "Type" : "AWS::EC2::KeyPair::KeyName",
@@ -41,10 +37,6 @@
           "Description" : "Who is the primary user of the resources",
           "Type" : "String"
       },
-      "NodeName" : {
-          "Description" : "Name of the node.  This primarily applies to EC2 instances.",
-          "Type" : "String"
-      },
       "ClusterName" : {
           "Description" : "The cluster a node belongs to if applicable.",
           "Type" :"String"
@@ -60,11 +52,6 @@
           "Type" :"Number",
           "MinValue" : "80",
           "MaxValue" : "65535"          
-      },
-      "Subnet" : {
-          "Description" : "Valid subnet within the VPC",
-          "Type" : "String",
-          "AllowedValues":["subnet-4360876e","subnet-c5a2748c"]
       }
     },
     "Mappings": {
@@ -80,9 +67,8 @@
         "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "test"]}        
     },
     "Resources": {
-        "WebLauncConfig" : {
+        "WebLaunchConfig" : {
             "Type" : "AWS::AutoScaling::LaunchConfiguration",
-            "Condition" : "CreateProdResources",
             "Metadata" : {
                 "AWS::CloudFormation::Init" : { 
                     "config": { 
@@ -126,8 +112,7 @@
                 }, 
             "Properties" : {
                 "KeyName" : { "Ref" : "KeyName" },
-                "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
-                "SubnetId" : { "Fn::Select" : ["0",{"Ref":"Subnet"}]},
+                "SecurityGroups" : [{ "Ref" : "SecurityGroup" }],
                 "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
                 "InstanceType" : {"Ref" : "InstanceType" },
                 "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
@@ -140,6 +125,7 @@
                 ]}}
             }
         },
+
        "WebELB01" : {
         "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
         "Properties" : {
@@ -168,12 +154,11 @@
     "WebASG": {
         "Type": "AWS::AutoScaling::AutoScalingGroup",
         "Properties": {
-            "AvailabilityZones": {"Fn::GetAZs": ""},
-            "LaunchConfiguration": {"Ref": "WebLaunchConfig"},
+            "LaunchConfigurationName": {"Ref": "WebLaunchConfig"},
             "MinSize": "2",
             "MaxSize": "2",
             "DesiredCapacity": "2",
-            "LoadBalancers": {"Ref": "WebElb01"},
+            "LoadBalancerNames": [{"Ref": "WebELB01"}],
             "Tags" : [
                     {"PropagateAtLaunch":"true","Key":"Owner", "Value" : {"Ref": "Owner"} },
                     {"PropagateAtLaunch":"true","Key":"Customer", "Value":{"Ref":"Customer"} },
@@ -182,7 +167,7 @@
                     {"PropagateAtLaunch":"true","Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
                     {"PropagateAtLaunch":"true","Key":"Environment", "Value":{"Ref":"Environment"} }
                 ],            
-            "VPCZoneIdentifier": {"Ref":"Subnet"}
+            "VPCZoneIdentifier": ["subnet-4360876e","subnet-c5a2748c"]
         }
     }
 

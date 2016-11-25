@@ -1,0 +1,23 @@
+[
+    {
+        "ParameterKey": "Name",
+        "ParameterValue": "MyTest"
+    },
+
+    {
+        "ParameterKey": "Environment",
+        "ParameterValue": "test"
+    },
+    {
+        "ParameterKey": "UseDNSSupport",
+        "ParameterValue": "true"
+    },
+    {
+        "ParameterKey": "UseDNSHostnames",
+        "ParameterValue": "false"
+    },
+   {
+       "ParameterKey": "Organization",
+       "ParameterValue": "FADE"
+   }
+]
