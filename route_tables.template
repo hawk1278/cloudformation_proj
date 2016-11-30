@@ -1,0 +1,114 @@
+
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "CloudFormation for route tables",
+    "Metadata": {
+
+    },
+    "Parameters": {
+    
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+"EC2SRTA2JFJA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "BastionPrivSubnet"
+        }
+      }
+    },
+    "EC2SRTA3AYYX": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Pub1StageSubnet"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "ee3e0848-4e48-46ef-bcde-eb0f48fa92f5"
+        }
+      }
+    },
+    "EC2SRTAJHX2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Pub2StageSubnet"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "d1794c6b-9bf2-4f2e-8ef9-1d44984a97e3"
+        }
+      }
+    },
+    "EC2SRTA25ONU": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Priv1StageSubnet"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "1d4c0907-de05-449c-b1f5-89617752ae53"
+        }
+      }
+    },
+    "EC2SRTA38W7Q": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Priv2StageSubnet"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "e7988de7-6fc2-44ce-8c38-6b99158ed0e3"
+        }
+      }
+    },
+    "EC2SRTAC6I0": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "BastionPubSubnet"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "6a588a75-a653-4c8b-ac98-8eafd8fd0548"
+        }
+      }
+    }    
+    },
+    "Outputs": {
+
+    }
+}
+    

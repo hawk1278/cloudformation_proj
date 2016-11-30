@@ -1,0 +1,66 @@
+{ 
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "NAT template.  Customization parameters need to be passed in.",
+    "Parameters": {
+       "POC": {
+          "Descripiton": "The name to identify the VPN in the AWS Console",
+          "Type": "String"
+      },
+      "SystemTag": {
+          "Description": "System to tag resources with.",
+          "Type": "String",
+          "Default": "DEVOPS"
+      }
+
+    },
+    "Resources": {
+       "NatGateway": {
+           "Type": "AWS::EC2::NatGateway",
+           "Properties": {
+               "Subnet": { "Ref": "BastionPubSubnet" },
+               "AllocationId": { "Fn::GetAtt": [ "NATElasticIP", "AllocationId" ]}
+           },
+           "DependsOn": [ "NATElasticIP" ]
+       },
+    "NATElasticIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+        }
+      },
+    "InetGateway": {
+           "Type": "AWS::EC2::InternetGateway",
+           "Properties": {
+               "Tags": [
+                   {"Key": "System", "Value": {"Ref":"SystemTag"}},
+                   {"Key": "Name", "Value": {"Fn::Join":[" ",[{"Ref":"SystemTag"}, "Internet Gateway"]]}}
+               ]
+           }
+       },    
+    "BastionPubSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": "-",
+        "MapPublicIpOnLaunch": true,
+        "VpcId": { "Ref": "DevOps" },
+        "CidrBlock": { "Fn::Join": [".", [ { "Ref": "VpcCidr" }, "255", "0/25"]]},
+        "Tags": [
+            { "Key": "Application", "Value": { "Ref": "AWS::StackName" }},
+            { "Key": "Name", "Value": "Bastion Public Subnet 1" },
+            { "Key": "POC", "Value": { "Ref": "POC" }},
+            { "Key": "System", "Value": { "Ref": "SystemTag" }}
+        ]
+      },
+      "DependsOn": [ "DevOps" ]
+    }    
+}      
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
