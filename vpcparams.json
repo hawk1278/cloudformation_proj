@@ -1,6 +1,6 @@
 [
     {
-        "ParameterKey": "Name",
+        "ParameterKey": "VPCName",
         "ParameterValue": "MyTest"
     },
 
@@ -19,5 +19,9 @@
    {
        "ParameterKey": "Organization",
        "ParameterValue": "FADE"
+   },
+   {
+       "ParameterKey": "POC",
+       "ParameterValue": "tester"
    }
 ]

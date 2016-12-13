@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Baseline VPC template.  Customization parameters need to be passed in.",
+    "Description": "Baseline VPC and networking components template.",
     "Parameters": {
         "VpcCidr": {
             "Description": "First 2 octects of CIDR block designation for VPC.",
@@ -10,7 +10,8 @@
         },
         "VPCName": {
             "Description": "Custom VPC name.",
-            "Type": "String"
+            "Type": "String",
+            "Default": "DevOps"
         },
         "UseDNSSupport": {
             "Description": "Specifies whether DNS resolution is supported for the VPC.",
@@ -32,11 +33,13 @@
       },
       "Organization": {
           "Description": "Organization the VPC is associated with.",
-          "Type": "String"
+          "Type": "String",
+          "Default": "GeoInt Services"
       },
       "POC": {
-          "Descripiton": "The name to identify the VPN in the AWS Console",
-          "Type": "String"
+          "Description": "The name to identify the VPN in the AWS Console",
+          "Type": "String",
+          "Default": "Test POC"
       },
       "SystemTag": {
           "Description": "System to tag resources with.",
@@ -44,30 +47,163 @@
           "Default": "DEVOPS"
       }
     },
+
     "Mappings": {},
+
     "Conditions": {
         "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
         "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "dev"]},
         "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "test"]}        
     },
+
     "Resources": {
-        "VPC": {
+        "DevOps": {
             "Type": "AWS::EC2::VPC",
             "Properties": {
-                "CidrBlock": { "Fn::Join": [".",[{"Ref":"VpcCidr"}, "0", "0/16"]]},
+                "CidrBlock": {"Fn::Join": [ ".", [ { "Ref": "VpcCidr" }, "0", "0/16" ]]},
                 "EnableDnsSupport": { "Ref": "UseDNSSupport" },
                 "EnableDnsHostnames": { "Ref": "UseDNSHostnames" },
-                "Tags": [
-                    {"Key": "Name", "Value": {"Ref": "VPCName"}},
-                    {"Key": "Environment", "Value": {"Ref": "Environment"}},
-                    {"Key": "Organization", "Value":{"Ref": "Organization"}}  ,
-                    {"Key": "POC", "Value": {"Ref": "POC"}},
-                    {"Key": "System", "Value": "SystemTag"} 
+                "Tags": [ { "Key": "Name", "Value": { "Ref": "VPCName" }},
+                    { "Key": "Environment", "Value": { "Ref": "Environment" }},
+                    { "Key": "Organization", "Value": {"Ref": "Organization" }},
+                    { "Key": "POC", "Value": { "Ref": "POC" }},
+                    { "Key": "System",  "Value": "SystemTag"}
                 ]
             }
-    }
- }, 
-"Outputs": {
-       "VpcId": {"Value" : {"Ref": "DevOps"} }
-    }
+        },
+
+        "InetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    { "Key": "System", "Value": { "Ref": "SystemTag"}},
+                    {"Key": "Name", "Value": {"Fn::Join": [" ",[{"Ref": "SystemTag"},"Internet Gateway"]]}}
+                ]
+            }
+        },
+
+      "VPCGatewayAttachment": {
+          "DependsOn": ["DevOps", "InetGateway"],
+          "Type": "AWS::EC2::VPCGatewayAttachment",
+          "Properties": {
+              "VpcId": {"Ref": "DevOps" },
+              "InternetGatewayId": { "Ref": "InetGateway" }
+        }
+      },
+
+    "DefaultRoute": {
+      "DependsOn": ["PublicRouteTable","InetGateway"],        
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {"Ref": "PublicRouteTable"},
+        "GatewayId": {"Ref": "InetGateway"},
+        "DestinationCidrBlock": "0.0.0.0/0"}
+    },
+
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+          "VpcId": {"Ref": "DevOps"},
+          "Tags": [
+          {"Key": "System", "Value": {"Ref": "SystemTag"}},
+          {"Key": "Name", "Value": "Public Route"}
+        ]
+      }
+    },
+
+    "PrivateRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {"Ref": "DevOps"},
+        "Tags": [
+          {"Key": "System", "Value": { "Ref": "SystemTag"}},
+          {"Key": "Name", "Value": "Private Route" }
+        ]
+      }
+    },
+
+    "BastionPubSubnet": {
+            "DependsOn": [ "DevOps" ],
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-1b",
+                "MapPublicIpOnLaunch": true,
+                "VpcId": { "Ref": "DevOps" },
+                "CidrBlock": { "Fn::Join": [".", [ { "Ref": "VpcCidr" }, "255", "0/25"]]},
+                "Tags": [
+                    { "Key": "Application", "Value": { "Ref": "AWS::StackName" }},
+                    { "Key": "Name", "Value": "Bastion Public Subnet 1" },
+                    { "Key": "POC", "Value": { "Ref": "POC" }},
+                    { "Key": "System", "Value": { "Ref": "SystemTag" }}
+                ]
+            }
+    },
+
+    "BastionPrivSubnet": {
+           "DependsOn": ["DevOps"],    
+           "Type": "AWS::EC2::Subnet",
+           "Properties": {
+               "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"255","128/25"]]},
+               "VpcId": {"Ref": "DevOps"},
+               "Tags": [
+                   {"Key": "Application","Value": {"Ref": "AWS::StackName"}},
+                   {"Key": "Name","Value": "Bastion Private Subnet 1"},
+                   {"Key": "POC", "Value": {"Ref": "POC"}},
+                   {"Key": "System", "Value": { "Ref": "SystemTag"}}
+               ]
+           }
+      },
+
+    "NatGateway": {
+                "DependsOn": [ "NATElasticIP"],
+                "Type": "AWS::EC2::NatGateway",
+                "Properties": {
+                    "SubnetId": {"Ref": "BastionPubSubnet" },
+                    "AllocationId": { "Fn::GetAtt": ["NATElasticIP", "AllocationId"]}
+                }
+        },
+    "NATInetRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+               "RouteTableId": { "Ref": "PrivateRouteTable"},
+               "DestinationCidrBlock": "0.0.0.0/0",
+               "NatGatewayId": {"Ref": "NatGateway"}
+            }
+        },
+      
+    "NATElasticIP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {"Domain": "vpc"}
+        }
+                  
+ },
+    
+ "Outputs": {
+       "DevOpsVPCId": {
+           "Description": "DevOps VPC id.",
+           "Value" : {"Ref": "DevOps"},
+           "Export" :  { "Name" : "DevOpsVPCId" }
+       },
+       "BastionPublicSubnetId": {
+           "Description": "Bastion public subnet id.",
+           "Value": {"Ref": "BastionPubSubnet"},
+           "Export": {"Name": "BastionPubSubnetId"}
+       },
+       "BastionPrivateSubnetId": {
+           "Description": "Bastion private subnet id.",
+           "Value": {"Ref": "BastionPrivSubnet"},
+           "Export": {"Name": "BastionPrivSubnetId"}
+       },
+       "PrivRouteTableId": {
+           "Description": "Private route table id.",
+           "Value": {"Ref": "PrivateRouteTable"},
+           "Export":{"Name": "PrivRouteTableId"}
+       },
+       "PubRouteTableId": {
+           "Description": "Public route table id.",
+           "Value": {"Ref": "PublicRouteTable"},
+           "Export": {"Name":"PubRouteTableId"}
+       }
+       
+   }
 }
