@@ -18,6 +18,12 @@
           "Description": "System to tag resources with.",
           "Type": "String",
           "Default": "DEVOPS"
+       },
+       "Environment": {
+           "Description": "Environment to deploy to",
+           "Type": "String",
+           "Default": "TEST",
+           "AllowedValues":["INT","TEST","PROD"]
        }            
     },
     "Resources": {
@@ -29,7 +35,7 @@
                "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"10","0/24"]]},
                "VpcId": { "Fn::ImportValue": "DevOpsVPCId" },
                "Tags": [
-                   {"Key": "Name","Value": "INT - Public Subnet 1"},
+                   {"Key": "Name","Value": {"Fn::Join": [" ",[{"Ref":"Environment"},"Public Subnet 1"]]}},
                    {"Key": "POC","Value": {"Ref": "POC"}},
                    {"Key": "System","Value": {"Ref": "SystemTag"}}
               ]
@@ -43,7 +49,7 @@
                 "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"30","0/24"]]},
                 "VpcId": { "Fn::ImportValue": "DevOpsVPCId" },
                 "Tags": [
-                    {"Key": "Name","Value": "INT - Private Subnet 1"},
+                    {"Key": "Name","Value": {"Fn::Join": [" ",[{"Ref":"Environment"},"Private Subnet 1"]]}},
                     {"Key": "POC","Value": {"Ref": "POC"}},
                     {"Key": "System","Value": {"Ref": "SystemTag"}}
                 ]

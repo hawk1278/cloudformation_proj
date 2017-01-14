@@ -1,0 +1,181 @@
+
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Eventual Jenkins build out.",
+    "Parameters": {
+      "KeyName" : {
+          "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
+          "Type" : "AWS::EC2::KeyPair::KeyName",
+          "Default": "",
+          "ConstraintDescription" : "Must be a valid EC2 key pair."
+      },
+      "InstanceType" : {
+          "Description" : "Type of EC2 instance to launch.",
+          "Type": "String",
+          "Default" : "t2.micro",
+          "AllowedValues" : ["t2.micro"],
+          "ConstraintDescription" : "Must be a valid EC2 instance type."
+      },
+      "POC": {
+          "Description": "Point of contact",
+          "Type": "String",
+          "Default": "Name=Batman|Phone=8675309|Email=ohara.richard@gmail.com"
+      },
+      "System": {
+          "Description": "Test",
+          "Type": "String",
+          "Default": "Devops"
+      },
+      "Backup":{
+          "Description": "Do we back up this instance",
+          "Type": "String",
+          "Default": "false"
+      },
+      "Environment" : {
+          "Description" : "Environment the stack is deployed to such as prodution, test, or development.",
+          "Type" : "String",
+          "Default" : "dev",
+          "AllowedValues" : ["dev","test","prod"]
+      },
+      "SecurityGroup" : {
+          "Description": "Security group id for the instance.",
+          "Type" : "String",
+          "Default" : ""
+      },
+      "Function": {
+          "Description": "Role of the server",
+          "Type": "String",
+          "Default": "Jenkins"
+      },
+      "WebServerPort" : {
+          "Description" : "Port used by web server.",
+          "Default": "80",
+          "Type" :"Number",
+          "MinValue" : "80",
+          "MaxValue" : "65535"          
+      }
+    },
+    "Mappings": {
+        "RegionMap" : {
+            "us-east-1" : {
+                "AMI" : "ami-6869aa05"
+            }
+        }
+    },
+    "Conditions": {
+        "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
+        "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "dev"]},
+        "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "test"]}        
+    },
+    "Resources": {
+        "JenkinsPubSecGroup": {
+
+        },
+        "JenkinsLaunchConfig" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : { 
+                    "config": { 
+                        "packages" : { 
+                            "yum" : { 
+                                "httpd" : [], "php" : []
+                                }
+                            },
+                            "services" : {
+                                "sysvinit" : {
+                                    "httpd" : { "enabled" : "true", "ensureRunning" : "true" },
+                                    "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
+                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]}
+              }                                
+                            },
+                            "files" : {
+                                    "/var/www/html/index.html" : {
+                                        "content" : { "Fn::Join" : ["\n", [
+                                            "<h1>Hello World!</h1>"
+                                    ]]},
+                                    "mode"    : "000644",
+                                    "owner"   : "root",
+                                    "group"   : "root"
+                                    },
+                                    "/etc/cfn/cfn-hup.conf" : {
+                                        "content" : { "Fn::Join" : ["", [
+                                            "[main]\n",
+                                            "stack=", { "Ref" : "AWS::StackId" }, "\n",
+                                            "region=", { "Ref" : "AWS::Region" }, "\n"
+                                            ]]},
+                                            "mode"    : "000400",
+                                            "owner"   : "root",
+                                            "group"   : "root" 
+                                    }                                
+                            },
+                            "sources" : {},
+                            "users" : {
+                            }
+                    }
+                    }
+                }, 
+            "Properties" : {
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroups" : [{ "Ref" : "SecurityGroup" }],
+                "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                    "#!/bin/bash \n",
+                    "yum update -y aws-cfn-bootstrap \n",
+                    "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
+                    "  -r Instance01",
+                    "  --region ", { "Ref":"AWS::Region" },"\n"
+                ]
+                ]}}
+            }
+        },
+
+       "JenkinsELB01" : {
+        "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+        "Properties" : {
+            "AvailabilityZones" : { "Fn::GetAZs" : ""},
+            "CrossZone": "true",
+            "Listeners" : [
+                {
+                    "LoadBalancerPort" : {"Ref":"WebServerPort"},
+                    "InstancePort" : {"Ref":"WebServerPort"},
+                    "Protocol" : "HTTP"
+                }
+            ],
+            "SecurityGroups" : [{"Ref":"SecurityGroup"}], 
+            "HealthCheck" : {
+                "Target" : {
+                    "Fn::Join" : [ "", [ "HTTP:", { "Ref" : "WebServerPort" }, "/" ] ]
+                },
+                "HealthyThreshold" : "3",
+                "UnhealthyThreshold" : "5",
+                "Interval" : "30",
+                "Timeout" : "5"
+            }
+        }
+    },
+
+    "WebASG": {
+        "Type": "AWS::AutoScaling::AutoScalingGroup",
+        "Properties": {
+            "AssociatePublicIp": true,
+            "LaunchConfigurationName": {"Ref": "JenkinsLaunchConfig"},
+            "MinSize": "2",
+            "MaxSize": "2",
+            "DesiredCapacity": "2",
+            "LoadBalancerNames": [{"Ref": "JenkinsELB01"}],
+            "Tags" : [
+                    {"PropagateAtLaunch":"true","Key" : "Name", "Value" :{"Fn::Join":["",[{"Ref":"System"},{"Ref":"Environment"},{"Ref":"Function"}]]}},                
+                    {"PropagateAtLaunch":"true","Key" : "Function", "Value" :{"Ref" : "Function"} },
+                    {"PropagateAtLaunch":"true","Key":"System", "Value":{"Ref":"System"} },
+                    {"PropagateAtLaunch":"true","Key":"Backup", "Value":{"Ref":"Backup"} },                    
+                    {"PropagateAtLaunch":"true","Key":"POC", "Value": {"Ref":"POC"} },
+                    {"PropagateAtLaunch":"true","Key":"Environment", "Value":{"Ref":"Environment"} }
+                ],            
+            "VPCZoneIdentifier": ["subnet-4360876e","subnet-c5a2748c"]
+        }
+    }
+
+}
+
+}
