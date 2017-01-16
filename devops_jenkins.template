@@ -54,10 +54,15 @@
           "MinValue" : "80",
           "MaxValue" : "65535"          
       },
+      "Subnets": {
+          "Description": "",
+          "Type": "String",
+          "Default":"subnet-5bafd276,subnet-2368446a"
+      },
       "VpcId": {
           "Description": "Id of a VPC",
           "Type": "String",
-          "Default": ""
+          "Default": "vpc-8a9028ec"
       }
     },
     "Mappings": {
@@ -76,8 +81,27 @@
         "JenkinsPubSecGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
-                "GroupDescription": "",
-                "SecurityGroupIngress": "",
+                "GroupDescription": "Jenkins public security group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "22",
+                        "ToPort": "22"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "80",
+                        "ToPort": "80"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "8080",
+                        "ToPort": "8080"
+                    }
+                ],
                 "Tags": [
                     {"Key":"Environment","Value":{"Ref":"Environment"}},
                     {"Key":"POC","Value":{"Ref":"POC"}}
@@ -130,8 +154,9 @@
                     }
                 }, 
             "Properties" : {
+                "AssociatePublicIpAddress": true,            
                 "KeyName" : { "Ref" : "KeyName" },
-                "SecurityGroups" : [{ "Ref" : "SecurityGroup" }],
+                "SecurityGroups" : [{ "Ref" : "JenkinsPubSecGroup" }],
                 "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
                 "InstanceType" : {"Ref" : "InstanceType" },
                 "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
@@ -148,7 +173,6 @@
        "JenkinsELB01" : {
         "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
         "Properties" : {
-            "AvailabilityZones" : { "Fn::GetAZs" : ""},
             "CrossZone": "true",
             "Listeners" : [
                 {
@@ -157,7 +181,8 @@
                     "Protocol" : "HTTP"
                 }
             ],
-            "SecurityGroups" : [{"Ref":"SecurityGroup"}], 
+            "Subnets":["subnet-5bafd276","subnet-2368446a"],
+            "SecurityGroups":[{"Ref":"JenkinsPubSecGroup"}],
             "HealthCheck" : {
                 "Target" : {
                     "Fn::Join" : [ "", [ "HTTP:", { "Ref" : "WebServerPort" }, "/" ] ]
@@ -173,7 +198,6 @@
     "WebASG": {
         "Type": "AWS::AutoScaling::AutoScalingGroup",
         "Properties": {
-            "AssociatePublicIp": true,
             "LaunchConfigurationName": {"Ref": "JenkinsLaunchConfig"},
             "MinSize": "2",
             "MaxSize": "2",
@@ -187,7 +211,7 @@
                     {"PropagateAtLaunch":"true","Key":"POC", "Value": {"Ref":"POC"} },
                     {"PropagateAtLaunch":"true","Key":"Environment", "Value":{"Ref":"Environment"} }
                 ],            
-            "VPCZoneIdentifier": ["subnet-4360876e","subnet-c5a2748c"]
+            "VPCZoneIdentifier": ["subnet-5bafd276","subnet-2368446a"]
         }
     }
 
