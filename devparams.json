@@ -2,9 +2,5 @@
     {
         "ParameterKey" : "KeyName",
         "ParameterValue" : "myec2key"
-    },
-    {
-        "ParameterKey": "SubnetList",
-        "ParameterValue": "subnet-5bafd276"
     }
 ]
