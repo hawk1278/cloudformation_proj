@@ -1,0 +1,89 @@
+
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {},
+    "Parameters": {
+        "VpcCidr": {
+            "Description": "First 2 octects of CIDR block designation for VPC.",
+            "Type": "String",
+            "AllowedPattern": "[0-9]{1,3}\\.[0-9]{1,3}",
+            "Default": "10.97"
+        },
+        "VPCName": {
+            "Description": "Custom VPC name.",
+            "Type": "String",
+            "Default": "DevOps"
+        },
+        "UseDNSSupport": {
+            "Description": "Specifies whether DNS resolution is supported for the VPC.",
+            "Type": "String",
+            "AllowedValues": ["true", "false"],
+            "Default": "true"
+        },
+        "UseDNSHostnames": {
+            "Description": "Specifies whether the instances launched in the VPC get DNS hostnames.",
+            "Type": "String",
+            "AllowedValues": ["true", "false"],
+            "Default": "true"
+        },
+        "Environment" : {
+          "Description" : "Environment the stack is deployed to such as prodution, test, or development.",
+          "Type" : "String",
+          "Default" : "dev",
+          "AllowedValues" : ["dev","test","prod"]
+      },
+      "Organization": {
+          "Description": "Organization the VPC is associated with.",
+          "Type": "String",
+          "Default": "GeoInt Services"
+      },
+      "POC": {
+          "Description": "The name to identify the VPN in the AWS Console",
+          "Type": "String",
+          "Default": "Test POC"
+      },
+      "SystemTag": {
+          "Description": "System to tag resources with.",
+          "Type": "String",
+          "Default": "DEVOPS"
+      }
+    },
+    
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "BastionPubSubnet": {
+            "DependsOn": [ "DevOps" ],
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-1b",
+                "MapPublicIpOnLaunch": true,
+                "VpcId": { "Ref": "DevOps" },
+                "CidrBlock": { "Fn::Join": [".", [ { "Ref": "VpcCidr" }, "255", "0/25"]]},
+                "Tags": [
+                    { "Key": "Application", "Value": { "Ref": "AWS::StackName" }},
+                    { "Key": "Name", "Value": "Bastion Public Subnet 1" },
+                    { "Key": "POC", "Value": { "Ref": "POC" }},
+                    { "Key": "System", "Value": { "Ref": "SystemTag" }}
+                ]
+            }
+    },
+
+       "BastionPrivSubnet": {
+           "DependsOn": ["DevOps"],    
+           "Type": "AWS::EC2::Subnet",
+           "Properties": {
+               "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"255","128/25"]]},
+               "VpcId": {"Ref": "DevOps"},
+               "Tags": [
+                   {"Key": "Application","Value": {"Ref": "AWS::StackName"}},
+                   {"Key": "Name","Value": "Bastion Private Subnet 1"},
+                   {"Key": "POC", "Value": {"Ref": "POC"}},
+                   {"Key": "System", "Value": { "Ref": "SystemTag"}}
+               ]
+           }
+       }    
+    }
+}
+    

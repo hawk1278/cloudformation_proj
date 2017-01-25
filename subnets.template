@@ -7,7 +7,7 @@
             "Description": "First 2 octects of CIDR block designation for VPC.",
             "Type": "String",
             "AllowedPattern": "[0-9]{1,3}\\.[0-9]{1,3}",
-            "Default": "10.97"
+            "Default": "10.92"
         },
         "POC": {
           "Description": "The name to identify the VPN in the AWS Console",
@@ -22,7 +22,7 @@
        "Environment": {
            "Description": "Environment to deploy to",
            "Type": "String",
-           "Default": "TEST",
+           "Default": "DEV",
            "AllowedValues":["INT","TEST","PROD"]
        }            
     },
@@ -35,7 +35,7 @@
                "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"10","0/24"]]},
                "VpcId": { "Fn::ImportValue": "DevOpsVPCId" },
                "Tags": [
-                   {"Key": "Name","Value": {"Fn::Join": [" ",[{"Ref":"Environment"},"Public Subnet 1"]]}},
+                   {"Key": "Name","Value": {"Fn::Join": ["-",["NOT","DEVOPS",{"Ref":"Environment"},"Public Subnet", "1"]]}},
                    {"Key": "POC","Value": {"Ref": "POC"}},
                    {"Key": "System","Value": {"Ref": "SystemTag"}}
               ]
@@ -49,7 +49,7 @@
                 "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"30","0/24"]]},
                 "VpcId": { "Fn::ImportValue": "DevOpsVPCId" },
                 "Tags": [
-                    {"Key": "Name","Value": {"Fn::Join": [" ",[{"Ref":"Environment"},"Private Subnet 1"]]}},
+                    {"Key": "Name","Value": {"Fn::Join": ["-",["NOT","DEVOPS",{"Ref":"Environment"},"Private Subnet","1"]]}},
                     {"Key": "POC","Value": {"Ref": "POC"}},
                     {"Key": "System","Value": {"Ref": "SystemTag"}}
                 ]

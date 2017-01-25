@@ -1,0 +1,151 @@
+
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Template for building out Jenkins.",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "VPC": {
+          "Description": "VPC to deploy resources in.",
+          "Type": "String",
+          "Default": "DevOps"
+      },
+      "VpcCidr": {
+          "Description": "CIDR block of the VPC.",
+          "Type": "String",
+          "Default": "10.97.0.0/16"
+      },
+      "KeyName" : {
+          "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
+          "Type" : "AWS::EC2::KeyPair::KeyName",
+          "Default": "myec2key",
+          "ConstraintDescription" : "Must be a valid EC2 key pair."
+      },
+      "InstanceType" : {
+          "Description" : "Type of EC2 instance to launch.",
+          "Type": "String",
+          "Default" : "t2.micro",
+          "AllowedValues" : ["t2.micro"],
+          "ConstraintDescription" : "Must be a valid EC2 instance type."
+      },
+      "Environment": {
+          "Description": "Environment to deploy to.",
+          "Type": "String",
+          "Default": "TEST",
+          "AllowedValues": ["INT", "TEST", "STAGE", "PROD"]
+      },
+      "POC":{
+          "Description": "None",
+          "Default": "None",
+          "Type": "String"
+      }
+    },
+
+    "Mappings": {
+        "RegionMap" : {
+            "us-east-1" : {"AMI" : "ami-b73b63a0"},
+            "us-west-1": {"AMI": "ami-5ec1673e"}
+        },
+        "SubnetMap": {
+            "INT": {"SubnetList": "IntSubnets"},
+            "TEST": {"SubnetList": "TestSubnets"},
+            "STAGE": {"SubnetList": "StageSubnets"},
+            "PROD": {"SubnetList": "ProdSubnets"}
+        }
+        
+    },
+    "Conditions": {
+        "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "PROD"]},
+        "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "STAGE"]},
+        "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "TEST"]}        
+
+    },
+    "Resources": {
+        "DefaultSG": {
+             "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": {"Ref": "VPC"},
+                "GroupDescription": "Default for all instances",
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "10.97.0.0/16"
+                }],
+                "SecurityGroupEgress": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": "0.0.0.0/0"
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 8140,
+                    "ToPort": 8140,
+                    "CidrIp": "10.97.30.0/24"                               
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 8142,
+                    "ToPort": 8142,
+                    "CidrIp": "10.97.30.0/24"
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 61613,
+                    "ToPort": 61613,
+                    "CidrIp": "10.97.30.0/24"
+                }
+                ],
+                "Tags": [
+                  {"Key": "Name","Value": {"Fn::Join": [" - ",[{"Ref": "Environment"},"Default Security Group"]]}}
+                ]
+            }
+    },
+
+    "JenkinsSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "GroupDescription": "Jenkins UI and Slave access",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 8080,
+            "ToPort": 8080,
+            "CidrIp": "10.97.30.0/24"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 54321,
+            "ToPort": 54321,
+            "CidrIp": "10.97.30.0/24"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                " - ",
+                [
+                  {
+                    "Ref": "Environment"
+                  },
+                  "Landing Page"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    } 
+    
+    },
+    "Outputs": {}
+}
+    
