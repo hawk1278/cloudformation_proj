@@ -19,9 +19,19 @@
       "Environment" : {
           "Description" : "Environment the stack is deployed to such as prodution, test, or development.",
           "Type" : "String",
-          "Default" : "dev",
-          "AllowedValues" : ["dev","test","prod"]
-      }
+          "Default" : "DEV",
+          "AllowedValues" : ["DEV","TEST","PROD"]
+      },
+    "Subnets": {
+          "Description": "",
+          "Type": "CommaDelimitedList",
+          "Default":"subnet-b7c4edfe,subnet-412c576c"
+      },
+      "VpcId": {
+          "Description": "Id of a VPC",
+          "Type": "String",
+          "Default": "vpc-10f77676"
+      }      
     },
     "Mappings": {
         "RegionMap" : {
@@ -46,13 +56,20 @@
                         "CidrIp": "172.31.48.0/20",
                         "FromPort": "22",
                         "ToPort": "22"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "10.97.30.0/20",
+                        "FromPort": "22",
+                        "ToPort": "22"
+
                     }
                 ],
                 "Tags": [
                     {"Key":"Group Name","Value":"int-ansible"},
                     {"Key":"Name","Value":"int-ansible"}                    
                 ],
-                "VpcId": "vpc-3d97705a"
+                "VpcId": {"Ref":"VpcId"}
             }
 
         },
@@ -77,7 +94,7 @@
               ],
               "KeyName" : { "Ref" : "KeyName" },
               "SecurityGroupIds" : [{ "Ref" : "AnsibleIntSecGroup" }],
-              "SubnetId" :"subnet-e130a6cb",
+              "SubnetId" :{"Fn::Select": ["0",{"Ref":"Subnets"}]},
               "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
               "InstanceType" : {"Ref" : "InstanceType" },
               "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[

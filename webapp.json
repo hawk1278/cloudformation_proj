@@ -19,47 +19,16 @@
           "AllowedValues" : ["t2.micro"],
           "ConstraintDescription" : "Must be a valid EC2 instance type."
       },
-      "Software" : {
-          "Description" : "Software installed and version in the following format: software_a-1.0 | software_b-1.0",
-          "Type" : "String"
-      },
-      "Services" : {
-          "Description" : "Services running on instances.",
-          "Type" : "String"
-      },
       "Environment" : {
           "Description" : "Environment the stack is deployed to such as prodution, test, or development.",
           "Type" : "String",
           "Default" : "dev",
-          "AllowedValues" : ["dev","test","prod"]
-      },
-      "Owner" : {
-          "Description" : "Who owns and maintains the resources in the stack.",
-          "Type" : "String"
-      },
-      "Customer" : {
-          "Description" : "Who is the primary user of the resources",
-          "Type" : "String"
-      },
-      "NodeName" : {
-          "Description" : "Name of the node.  This primarily applies to EC2 instances.",
-          "Type" : "String"
-      },
-      "ClusterName" : {
-          "Description" : "The cluster a node belongs to if applicable.",
-          "Type" :"String"
+          "AllowedValues" : ["DEV","TEST","PROD"]
       },
       "SecurityGroup" : {
           "Description": "Security group id for the instance.",
           "Type" : "String",
           "Default" : ""
-      },
-      "WebServerPort" : {
-          "Description" : "Port used by web server.",
-          "Default": "80",
-          "Type" :"Number",
-          "MinValue" : "80",
-          "MaxValue" : "65535"          
       },
       "Subnet" : {
           "Description" : "Valid subnet within the VPC",
@@ -82,56 +51,9 @@
         "Instance01" : {
             "Type" : "AWS::EC2::Instance",
             "Condition" : "CreateProdResources",
-            "Metadata" : {
-                "AWS::CloudFormation::Init" : { 
-                    "config": { 
-                        "packages" : { 
-                            "yum" : { 
-                                "httpd" : [], "php" : []
-                                }
-                            },
-                            "services" : {
-                                "sysvinit" : {
-                                    "httpd" : { "enabled" : "true", "ensureRunning" : "true" },
-                                    "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
-                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]}
-              }                                
-                            },
-                            "files" : {
-                                    "/var/www/html/index.html" : {
-                                        "content" : { "Fn::Join" : ["\n", [
-                                            "<h1>Hello World!</h1>"
-                                    ]]},
-                                    "mode"    : "000644",
-                                    "owner"   : "root",
-                                    "group"   : "root"
-                                    },
-                                    "/etc/cfn/cfn-hup.conf" : {
-                                        "content" : { "Fn::Join" : ["", [
-                                            "[main]\n",
-                                            "stack=", { "Ref" : "AWS::StackId" }, "\n",
-                                            "region=", { "Ref" : "AWS::Region" }, "\n"
-                                            ]]},
-                                            "mode"    : "000400",
-                                            "owner"   : "root",
-                                            "group"   : "root" 
-                                    }                                
-                            },
-                            "sources" : {},
-                            "users" : {
-                            }
-                    }
-                    }
-                }, 
             "Properties" : {
                 "Tags" : [
-                    {"Key":"Owner", "Value" : {"Ref": "Owner"} },
-                    {"Key":"Customer", "Value":{"Ref":"Customer"} },
-                    {"Key" : "Software", "Value" :{"Ref" : "Software"} },
-                    {"Key":"Services", "Value":{"Ref":"Services"} },
-                    {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
-                    {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
-                    {"Key":"InstanceName", "Value" : {"Fn::Select" : ["0",{"Ref":"InstanceName"}]}},
+                    {"Key":"InstanceName", "Value" : {"Ref":"InstanceName"},
                     {"Key":"Environment", "Value":{"Ref":"Environment"} }
                 ],
                 "KeyName" : { "Ref" : "KeyName" },
@@ -148,112 +70,9 @@
                 ]
                 ]}}
             }
-        },
-    "Instance02" : {
-          "Type" : "AWS::EC2::Instance",
-          "Condition" : "CreateProdResources",
-          "Metadata" : {
-              "AWS::CloudFormation::Init" : { 
-                  "config": { 
-                      "packages" : { 
-                          "yum" : { 
-                              "httpd" : [], "php" : []
-                            }
-                        },
-                        "services" : {
-                            "sysvinit" : {
-                                "httpd" : { "enabled" : "true", "ensureRunning" : "true" },
-                                "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
-                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]}
-              }                            
-                        },
-                        "files" : {
-                            "/var/www/html/index.html" : {
-                                "content" : { "Fn::Join" : ["\n", [
-                                    "<h1>Hello World.</h1>"
-                            ]]},
-                            "mode"    : "000644",
-                            "owner"   : "root",
-                            "group"   : "root"
-                            },
-                            "/etc/cfn/cfn-hup.conf" : {
-                                "content" : { "Fn::Join" : ["", [
-                                    "[main]\n",
-                                    "stack=", { "Ref" : "AWS::StackId" }, "\n",
-                                    "region=", { "Ref" : "AWS::Region" }, "\n"
-                                    ]]},
-                                    "mode"    : "000400",
-                                    "owner"   : "root",
-                                    "group"   : "root" 
-                            }
-                        },
-                        "sources" : {},
-                        "users" : {
-                        }
-                  }
-                }
-            }, 
-        "Properties" : {
-              "Tags" : [
-                  {"Key":"Owner", "Value" : {"Ref": "Owner"} },
-                  {"Key":"Customer", "Value":{"Ref":"Customer"} },
-                  {"Key" : "Software", "Value" :{"Ref" : "Software"} },
-                  {"Key":"Services", "Value":{"Ref":"Services"} },
-                  {"Key":"NodeName", "Value":{"Ref":"NodeName"} },
-                  {"Key":"ClusterName", "Value": {"Ref":"ClusterName"} },
-                  {"Key":"InstanceName", "Value" : {"Fn::Select" : ["1",{"Ref":"InstanceName"}]}},                  
-                  {"Key":"Environment", "Value":{"Ref":"Environment"} }
-              ],
-              "KeyName" : { "Ref" : "KeyName" },
-              "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
-              "SubnetId" : { "Fn::Select" : ["1",{"Ref":"Subnet"}]},
-              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
-              "InstanceType" : {"Ref" : "InstanceType" },
-              "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
-                  "#!/bin/bash \n",
-                  "yum update -y aws-cfn-bootstrap \n",
-                  "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
-                  "  -r Instance02",
-                  "  --region ", { "Ref":"AWS::Region" },"\n"
-              ]
-              ]}}
         }
-    },
-    "ELB01" : {
-        "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
-        "Properties" : {
-            "AvailabilityZones" : { "Fn::GetAZs" : ""},
-            "Instances" : [{"Ref":"Instance01"}, {"Ref":"Instance02"}],
-            "Listeners" : [
-                {
-                    "LoadBalancerPort" : "80",
-                    "InstancePort" : {"Ref":"WebServerPort"},
-                    "Protocol" : "HTTP"
-                }
-            ],
-            "SecurityGroups" : [{"Ref":"SecurityGroup"}], 
-            "HealthCheck" : {
-                "Target" : {
-                    "Fn::Join" : [ "", [ "HTTP:", { "Ref" : "WebServerPort" }, "/" ] ]
-                },
-                "HealthyThreshold" : "3",
-                "UnhealthyThreshold" : "5",
-                "Interval" : "30",
-                "Timeout" : "5"
-            }
-        }
-    }
 },
 
-  "Outputs" : {
-      "Instance01" : {
-          "Value": { "Fn::GetAtt" : ["Instance01","PublicIp"] },
-          "Description" : "Public IP of Instance01"                   
-      },
-      "Insance02": {
-          "Value":{ "Fn::GetAtt": ["Instance02", "PublicIp"]},
-          "Description" : "Public IP of Instance02"          
-      }
-  }
+  "Outputs" : {}
 
 }

@@ -1,6 +1,10 @@
 [
     {
-        "ParameterKey" : "KeyName",
-        "ParameterValue" : "myec2key"
+        "ParameterKey" : "Subnets",
+        "ParameterValue" : "subnet-1125613c,subnet-1025613d"
+    },
+    {
+        "ParameterKey": "VpcId",
+        "ParameterValue": "vpc-f9dc519f"
     }
 ]

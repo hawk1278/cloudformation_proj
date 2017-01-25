@@ -1,0 +1,238 @@
+
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "ElasticSearch template for AWS",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "KeyName" : {
+          "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
+          "Type" : "AWS::EC2::KeyPair::KeyName",
+          "Default": "myec2key",
+          "ConstraintDescription" : "Must be a valid EC2 key pair."
+      },
+      "InstanceType" : {
+          "Description" : "Type of EC2 instance to launch.",
+          "Type": "String",
+          "Default" : "t2.micro",
+          "AllowedValues" : ["t2.micro"],
+          "ConstraintDescription" : "Must be a valid EC2 instance type."
+      },
+      "POC": {
+          "Description": "Point of contact",
+          "Type": "String",
+          "Default": "Name=Batman|Phone=8675309|Email=ohara.richard@gmail.com"
+      },
+      "Environment" : {
+          "Description" : "Environment the stack is deployed to such as prodution, test, or development.",
+          "Type" : "String",
+          "Default" : "DEV",
+          "AllowedValues" : ["DEV","TEST","PROD"]
+      },
+      "Subnets": {
+          "Description": "",
+          "Type": "CommaDelimitedList",
+          "Default":"subnet-b7c4edfe,subnet-412c576c"
+      },
+      "VpcId": {
+          "Description": "Id of a VPC",
+          "Type": "String",
+          "Default": "vpc-10f77676"
+      },
+      "ServerPort": {
+          "Description": "Server port",
+          "Type": "String",
+          "Default": "8080"
+      }
+    },
+    "Mappings": {
+        "RegionMap" : {
+            "us-east-1" : {
+                "AMI" : "ami-6869aa05"
+            }
+        }
+    },
+    
+    "Conditions": {
+
+    },
+    "Resources": {
+        "ElasticSearchIntSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "ElasticSearch internal security group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "172.31.48.0/20",
+                        "FromPort": "9200",
+                        "ToPort": "9200"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "10.97.30.0/20",
+                        "FromPort": "9200",
+                        "ToPort": "9200"
+
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "172.31.48.0/20",
+                        "FromPort": "9300",
+                        "ToPort": "9300"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "10.97.30.0/20",
+                        "FromPort": "9300",
+                        "ToPort": "9300"
+
+                    },
+                    
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "172.31.48.0/20",
+                        "FromPort": "22",
+                        "ToPort": "22"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "10.97.30.0/20",
+                        "FromPort": "22",
+                        "ToPort": "22"
+
+                    }
+                    
+                ],
+                "Tags": [
+                    {"Key":"Group Name","Value":"int-elasticsearch"},
+                    {"Key":"Name","Value":"int-elasticsearch"}                    
+                ],
+                "VpcId": {"Ref":"VpcId"}
+            }
+        },
+        "ElasticSearchExtSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "ElasticSearch internal security group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "73.173.161.84/32",
+                        "FromPort": "9200",
+                        "ToPort": "9200"
+                    }
+                ],
+                "Tags": [
+                    {"Key":"Group Name","Value":"int-elasticsearch"},
+                    {"Key":"Name","Value":"int-elasticsearch"}                    
+                ],
+                "VpcId": {"Ref":"VpcId"}
+            }
+        },
+
+        "ElasticSearchMaster": {
+            "Type":"AWS::EC2::Instance",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : { 
+                    "config": { 
+                        "packages" : {},
+                            "services" : {},
+                            "files" : {},
+                            "sources" : {},
+                            "users" : {}
+                    }
+                    }
+            }, 
+            "Properties" : {
+                "Tags" : [
+                    {"Key":"Name", "Value" : "ElasticSearch Master Server"},                  
+                    {"Key":"Environment", "Value":{"Ref":"Environment"} },
+                    {"Key": "Function", "Value":"elasticsearch"}
+                ],
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroupIds" : [{ "Ref" : "ElasticSearchIntSG" },{"Ref":"ElasticSearchExtSG"}],
+                "SubnetId" :{"Fn::Select": ["0",{"Ref":"Subnets"}]},
+                "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                    "#!/bin/bash \n",
+                    "yum update -y aws-cfn-bootstrap \n"
+                ]
+                ]}}
+            }
+                
+        },
+
+        "ElasticSearchMaster2": {
+            "Type":"AWS::EC2::Instance",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : { 
+                    "config": { 
+                        "packages" : {},
+                            "services" : {},
+                            "files" : {},
+                            "sources" : {},
+                            "users" : {}
+                    }
+                    }
+            }, 
+            "Properties" : {
+                "Tags" : [
+                    {"Key":"Name", "Value" : "ElasticSearch Master Server"},                  
+                    {"Key":"Environment", "Value":{"Ref":"Environment"} },
+                    {"Key": "Function", "Value":"elasticsearch"}
+                ],
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroupIds" : [{ "Ref" : "ElasticSearchIntSG" },{"Ref":"ElasticSearchExtSG"}],
+                "SubnetId" :{"Fn::Select": ["0",{"Ref":"Subnets"}]},
+                "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                    "#!/bin/bash \n",
+                    "yum update -y aws-cfn-bootstrap \n"
+                ]
+                ]}}
+            }
+                
+        },
+        "ElasticSearchMaster3": {
+            "Type":"AWS::EC2::Instance",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : { 
+                    "config": { 
+                        "packages" : {},
+                            "services" : {},
+                            "files" : {},
+                            "sources" : {},
+                            "users" : {}
+                    }
+                    }
+            }, 
+            "Properties" : {
+                "Tags" : [
+                    {"Key":"Name", "Value" : "ElasticSearch Master Server"},                  
+                    {"Key":"Environment", "Value":{"Ref":"Environment"} },
+                    {"Key": "Function", "Value":"elasticsearch"}
+                ],
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroupIds" : [{ "Ref" : "ElasticSearchIntSG" },{"Ref":"ElasticSearchExtSG"}],
+                "SubnetId" :{"Fn::Select": ["0",{"Ref":"Subnets"}]},
+                "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
+                    "#!/bin/bash \n",
+                    "yum update -y aws-cfn-bootstrap \n"
+                ]
+                ]}}
+            }
+                
+        }
+        
+    },
+    "Outputs": {
+
+    }
+}
+    

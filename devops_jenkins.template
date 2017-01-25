@@ -1,12 +1,17 @@
 
 {
     "AWSTemplateFormatVersion": "2010-09-09",
+    "Metadata": {
+        "LastUpdated": "",
+        "UpdatedBy": "",
+        "Commetns": ""
+    },
     "Description": "Eventual Jenkins build out.",
     "Parameters": {
       "KeyName" : {
           "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
           "Type" : "AWS::EC2::KeyPair::KeyName",
-          "Default": "",
+          "Default": "myec2key",
           "ConstraintDescription" : "Must be a valid EC2 key pair."
       },
       "InstanceType" : {
@@ -34,8 +39,8 @@
       "Environment" : {
           "Description" : "Environment the stack is deployed to such as prodution, test, or development.",
           "Type" : "String",
-          "Default" : "dev",
-          "AllowedValues" : ["dev","test","prod"]
+          "Default" : "DEV",
+          "AllowedValues" : ["DEV","TEST","PROD"]
       },
       "SecurityGroup" : {
           "Description": "Security group id for the instance.",
@@ -56,13 +61,23 @@
       },
       "Subnets": {
           "Description": "",
-          "Type": "String",
-          "Default":"subnet-5bafd276,subnet-2368446a"
+          "Type": "CommaDelimitedList",
+          "Default":"subnet-b7c4edfe,subnet-412c576c"
       },
       "VpcId": {
           "Description": "Id of a VPC",
           "Type": "String",
-          "Default": "vpc-8a9028ec"
+          "Default": "vpc-10f77676"
+      },
+      "ServerPort": {
+          "Description": "Server port",
+          "Type": "String",
+          "Default": "8080"
+      },
+      "ELBPort":{
+          "Description": "ELB port",
+          "Type": "String",
+          "Default": "80"
       }
     },
     "Mappings": {
@@ -71,11 +86,6 @@
                 "AMI" : "ami-6869aa05"
             }
         }
-    },
-    "Conditions": {
-        "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "PROD"]},
-        "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "DEV"]},
-        "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "TEST"]}        
     },
     "Resources": {
         "JenkinsPubSecGroup": {
@@ -110,111 +120,53 @@
             }
 
         },
+        "JeninsMaster": {
+            "Type":"AWS::EC2::Instance",
+            "Properties" : {
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroupIds" : [{ "Ref" : "JenkinsPubSecGroup" }],
+                "SubnetId" :{"Fn::Select": ["0",{"Ref":"Subnets"}]},
+                "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "Tags":[
+                    {"Key" : "Name", "Value" :{"Fn::Join":[" ",[{"Ref":"System"},{"Ref":"Environment"},{"Ref":"Function"}]]}},                
+                    {"Key" : "Function", "Value" :{"Ref" : "Function"} },
+                    {"Key":"System", "Value":{"Ref":"System"} },
+                    {"Key":"Backup", "Value":{"Ref":"Backup"} },                    
+                    {"Key":"POC", "Value": {"Ref":"POC"} },
+                    {"Key":"Environment", "Value":{"Ref":"Environment"} }
+
+                ]
+             }
+        },
         "JenkinsLaunchConfig" : {
             "Type" : "AWS::AutoScaling::LaunchConfiguration",
-            "Metadata" : {
-                "AWS::CloudFormation::Init" : { 
-                    "config": { 
-                        "packages" : { 
-                            "yum" : { 
-                                "httpd" : [], "php" : []
-                                }
-                            },
-                            "services" : {
-                                "sysvinit" : {
-                                    "httpd" : { "enabled" : "true", "ensureRunning" : "true" },
-                                    "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
-                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]}
-              }                                
-                            },
-                            "files" : {
-                                    "/var/www/html/index.html" : {
-                                        "content" : { "Fn::Join" : ["\n", [
-                                            "<h1>Hello World!</h1>"
-                                    ]]},
-                                    "mode"    : "000644",
-                                    "owner"   : "root",
-                                    "group"   : "root"
-                                    },
-                                    "/etc/cfn/cfn-hup.conf" : {
-                                        "content" : { "Fn::Join" : ["", [
-                                            "[main]\n",
-                                            "stack=", { "Ref" : "AWS::StackId" }, "\n",
-                                            "region=", { "Ref" : "AWS::Region" }, "\n"
-                                            ]]},
-                                            "mode"    : "000400",
-                                            "owner"   : "root",
-                                            "group"   : "root" 
-                                    }                                
-                            },
-                            "sources" : {},
-                            "users" : {
-                            }
-                    }
-                    }
-                }, 
             "Properties" : {
-                "AssociatePublicIpAddress": true,            
                 "KeyName" : { "Ref" : "KeyName" },
                 "SecurityGroups" : [{ "Ref" : "JenkinsPubSecGroup" }],
                 "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
-                "InstanceType" : {"Ref" : "InstanceType" },
-                "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
-                    "#!/bin/bash \n",
-                    "yum update -y aws-cfn-bootstrap \n",
-                    "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
-                    "  -r Instance01",
-                    "  --region ", { "Ref":"AWS::Region" },"\n"
-                ]
-                ]}}
+                "InstanceType" : {"Ref" : "InstanceType" }
             }
         },
-
-       "JenkinsELB01" : {
-        "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
-        "Properties" : {
-            "CrossZone": "true",
-            "Listeners" : [
-                {
-                    "LoadBalancerPort" : {"Ref":"WebServerPort"},
-                    "InstancePort" : {"Ref":"WebServerPort"},
-                    "Protocol" : "HTTP"
-                }
-            ],
-            "Subnets":["subnet-5bafd276","subnet-2368446a"],
-            "SecurityGroups":[{"Ref":"JenkinsPubSecGroup"}],
-            "HealthCheck" : {
-                "Target" : {
-                    "Fn::Join" : [ "", [ "HTTP:", { "Ref" : "WebServerPort" }, "/" ] ]
-                },
-                "HealthyThreshold" : "3",
-                "UnhealthyThreshold" : "5",
-                "Interval" : "30",
-                "Timeout" : "5"
+        
+        "JenkinsASG": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "LaunchConfigurationName": {"Ref": "JenkinsLaunchConfig"},
+                "MinSize": "1",
+                "MaxSize": "3",
+                "DesiredCapacity": "2",
+                "Tags" : [
+                        {"PropagateAtLaunch":"true","Key" : "Name", "Value" :{"Fn::Join":[" ",[{"Ref":"System"},{"Ref":"Environment"},{"Ref":"Function"}]]}},                
+                        {"PropagateAtLaunch":"true","Key" : "Function", "Value" :{"Ref" : "Function"} },
+                        {"PropagateAtLaunch":"true","Key":"System", "Value":{"Ref":"System"} },
+                        {"PropagateAtLaunch":"true","Key":"Backup", "Value":{"Ref":"Backup"} },                    
+                        {"PropagateAtLaunch":"true","Key":"POC", "Value": {"Ref":"POC"} },
+                        {"PropagateAtLaunch":"true","Key":"Environment", "Value":{"Ref":"Environment"} }
+                    ],            
+                "VPCZoneIdentifier": [{"Fn::Select": ["0",{"Ref":"Subnets"}]}]
             }
         }
-    },
 
-    "WebASG": {
-        "Type": "AWS::AutoScaling::AutoScalingGroup",
-        "Properties": {
-            "LaunchConfigurationName": {"Ref": "JenkinsLaunchConfig"},
-            "MinSize": "2",
-            "MaxSize": "2",
-            "DesiredCapacity": "2",
-            "LoadBalancerNames": [{"Ref": "JenkinsELB01"}],
-            "Tags" : [
-                    {"PropagateAtLaunch":"true","Key" : "Name", "Value" :{"Fn::Join":["",[{"Ref":"System"},{"Ref":"Environment"},{"Ref":"Function"}]]}},                
-                    {"PropagateAtLaunch":"true","Key" : "Function", "Value" :{"Ref" : "Function"} },
-                    {"PropagateAtLaunch":"true","Key":"System", "Value":{"Ref":"System"} },
-                    {"PropagateAtLaunch":"true","Key":"Backup", "Value":{"Ref":"Backup"} },                    
-                    {"PropagateAtLaunch":"true","Key":"POC", "Value": {"Ref":"POC"} },
-                    {"PropagateAtLaunch":"true","Key":"Environment", "Value":{"Ref":"Environment"} }
-                ],            
-            "VPCZoneIdentifier": ["subnet-5bafd276","subnet-2368446a"]
-        }
     }
-
-}
-
 }
