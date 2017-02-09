@@ -23,7 +23,7 @@
            "Description": "Environment to deploy to",
            "Type": "String",
            "Default": "DEV",
-           "AllowedValues":["INT","TEST","PROD"]
+           "AllowedValues":["INT","DEV","TEST","PROD"]
        }            
     },
     "Resources": {
@@ -35,7 +35,7 @@
                "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"10","0/24"]]},
                "VpcId": { "Fn::ImportValue": "DevOpsVPCId" },
                "Tags": [
-                   {"Key": "Name","Value": {"Fn::Join": ["-",["NOT","DEVOPS",{"Ref":"Environment"},"Public Subnet", "1"]]}},
+                   {"Key": "Name","Value": {"Fn::Join": ["-",["NOT","PROD","DEVOPS",{"Ref":"Environment"},"Public Subnet", "1"]]}},
                    {"Key": "POC","Value": {"Ref": "POC"}},
                    {"Key": "System","Value": {"Ref": "SystemTag"}}
               ]
@@ -49,7 +49,7 @@
                 "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"30","0/24"]]},
                 "VpcId": { "Fn::ImportValue": "DevOpsVPCId" },
                 "Tags": [
-                    {"Key": "Name","Value": {"Fn::Join": ["-",["NOT","DEVOPS",{"Ref":"Environment"},"Private Subnet","1"]]}},
+                    {"Key": "Name","Value": {"Fn::Join": ["-",["NOT","PROD","DEVOPS",{"Ref":"Environment"},"Private Subnet","1"]]}},
                     {"Key": "POC","Value": {"Ref": "POC"}},
                     {"Key": "System","Value": {"Ref": "SystemTag"}}
                 ]

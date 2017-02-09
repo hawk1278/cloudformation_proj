@@ -11,7 +11,7 @@
         "VPCName": {
             "Description": "Custom VPC name.",
             "Type": "String",
-            "Default": "NOT - DEVOPS"
+            "Default": "NOT-PROD-DEVOPS"
         },
         "UseDNSSupport": {
             "Description": "Specifies whether DNS resolution is supported for the VPC.",
@@ -78,16 +78,16 @@
             "Properties": {
                 "Tags": [
                     { "Key": "System", "Value": { "Ref": "SystemTag"}},
-                    {"Key": "Name", "Value": {"Fn::Join": ["-",["NOT","DEVOPS",{"Ref":"Environment"},"Internet Gateway"]]}}
+                    {"Key": "Name", "Value": {"Fn::Join": ["-",["NOT","PROD","DEVOPS",{"Ref":"Environment"},"Internet Gateway"]]}}
                 ]
             }
         },
 
       "VPCGatewayAttachment": {
-          "DependsOn": ["DevOps", "InetGateway"],
+          "DependsOn": ["DevOpsVPC", "InetGateway"],
           "Type": "AWS::EC2::VPCGatewayAttachment",
           "Properties": {
-              "VpcId": {"Ref": "DevOps" },
+              "VpcId": {"Ref": "DevOpsVPC" },
               "InternetGatewayId": { "Ref": "InetGateway" }
         }
       },
@@ -104,10 +104,10 @@
     "PublicRouteTable": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
-          "VpcId": {"Ref": "DevOps"},
+          "VpcId": {"Ref": "DevOpsVPC"},
           "Tags": [
           {"Key": "System", "Value": {"Ref": "SystemTag"}},
-          {"Key": "Name", "Value": {"Fn::Join":["-",["NOT","DEVOPS",{"Ref":"Environment"},"Public Route"]]}}
+          {"Key": "Name", "Value": {"Fn::Join":["-",["NOT","PROD","DEVOPS",{"Ref":"Environment"},"Public Route"]]}}
         ]
       }
     },
@@ -115,25 +115,25 @@
     "PrivateRouteTable": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
-        "VpcId": {"Ref": "DevOps"},
+        "VpcId": {"Ref": "DevOpsVPC"},
         "Tags": [
           {"Key": "System", "Value": { "Ref": "SystemTag"}},
-          {"Key": "Name", "Value": {"Fn::Join":["-",["NOT","DEVOPS",{"Ref":"Environment"},"Private Route"]]}}
+          {"Key": "Name", "Value": {"Fn::Join":["-",["NOT","PROD","DEVOPS",{"Ref":"Environment"},"Private Route"]]}}
         ]
       }
     },
 
     "BastionPubSubnet": {
-            "DependsOn": [ "DevOps" ],
+            "DependsOn": [ "DevOpsVPC" ],
             "Type": "AWS::EC2::Subnet",
             "Properties": {
-                "AvailabilityZone": "us-east-1b",
+                "AvailabilityZone": "us-west-2a",
                 "MapPublicIpOnLaunch": true,
-                "VpcId": { "Ref": "DevOps" },
+                "VpcId": { "Ref": "DevOpsVPC" },
                 "CidrBlock": { "Fn::Join": [".", [ { "Ref": "VpcCidr" }, "255", "0/25"]]},
                 "Tags": [
                     { "Key": "Application", "Value": { "Ref": "AWS::StackName" }},
-                    { "Key": "Name", "Value": {"Fn::Join":["-",["NOT","DEVOPS",{"Ref":"Environment"},"Bastion Public Subnet","1"]]} },
+                    { "Key": "Name", "Value": {"Fn::Join":["-",["NOT","PROD","DEVOPS",{"Ref":"Environment"},"Bastion Public Subnet","1"]]} },
                     { "Key": "POC", "Value": { "Ref": "POC" }},
                     { "Key": "System", "Value": { "Ref": "SystemTag" }}
                 ]
@@ -141,14 +141,14 @@
     },
 
     "BastionPrivSubnet": {
-           "DependsOn": ["DevOps"],    
+           "DependsOn": ["DevOpsVPC"],    
            "Type": "AWS::EC2::Subnet",
            "Properties": {
                "CidrBlock": {"Fn::Join": [".",[{"Ref": "VpcCidr"},"255","128/25"]]},
-               "VpcId": {"Ref": "DevOps"},
+               "VpcId": {"Ref": "DevOpsVPC"},
                "Tags": [
                    {"Key": "Application","Value": {"Ref": "AWS::StackName"}},
-                    { "Key": "Name", "Value": {"Fn::Join":["-",["NOT","DEVOPS",{"Ref":"Environment"},"Bastion Private Subnet","1"]]} },
+                    { "Key": "Name", "Value": {"Fn::Join":["-",["NOT","PROD","DEVOPS",{"Ref":"Environment"},"Bastion Private Subnet","1"]]} },
                    {"Key": "POC", "Value": {"Ref": "POC"}},
                    {"Key": "System", "Value": { "Ref": "SystemTag"}}
                ]
@@ -182,7 +182,7 @@
  "Outputs": {
        "DevOpsVPCId": {
            "Description": "DevOps VPC id.",
-           "Value" : {"Ref": "DevOps"},
+           "Value" : {"Ref": "DevOpsVPC"},
            "Export" :  { "Name" : "DevOpsVPCId" }
        },
        "BastionPublicSubnetId": {
