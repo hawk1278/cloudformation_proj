@@ -9,6 +9,11 @@
           "Default": "myec2key",
           "ConstraintDescription" : "Must be a valid EC2 key pair."
       },
+      "ImageId":{
+          "Description": "AMI id for instance",
+          "Type": "String",
+          "Default": "ami-643b1972"
+      },
       "InstanceType" : {
           "Description" : "Type of EC2 instance to launch.",
           "Type": "String",
@@ -25,20 +30,13 @@
     "Subnets": {
           "Description": "",
           "Type": "CommaDelimitedList",
-          "Default":"subnet-b7c4edfe,subnet-412c576c"
+          "Default":"subnet-3c2a6a4a,subnet-0fe4ae32"
       },
       "VpcId": {
           "Description": "Id of a VPC",
           "Type": "String",
-          "Default": "vpc-10f77676"
+          "Default": "vpc-3d97705a"
       }      
-    },
-    "Mappings": {
-        "RegionMap" : {
-            "us-east-1" : {
-                "AMI" : "ami-6869aa05"
-            }
-        }
     },
     "Conditions": {
         "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
@@ -59,10 +57,27 @@
                     },
                     {
                         "IpProtocol": "tcp",
-                        "CidrIp": "10.97.30.0/20",
+                        "CidrIp": "172.31.32.0/20",
                         "FromPort": "22",
                         "ToPort": "22"
-
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "172.31.16.0/20",
+                        "FromPort": "22",
+                        "ToPort": "22"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "172.31.64.0/20",
+                        "FromPort": "22",
+                        "ToPort": "22"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "172.31.96.0/20",
+                        "FromPort": "22",
+                        "ToPort": "22"
                     }
                 ],
                 "Tags": [
@@ -71,22 +86,10 @@
                 ],
                 "VpcId": {"Ref":"VpcId"}
             }
-
         },
         
     "AnsibleControlServer" : {
           "Type" : "AWS::EC2::Instance",
-          "Metadata" : {
-              "AWS::CloudFormation::Init" : { 
-                  "config": { 
-                      "packages" : {},
-                        "services" : {},
-                        "files" : {},
-                        "sources" : {},
-                        "users" : {}
-                  }
-                }
-            }, 
         "Properties" : {
               "Tags" : [
                   {"Key":"Name", "Value" : "Ansible Control Server"},                  
@@ -95,7 +98,7 @@
               "KeyName" : { "Ref" : "KeyName" },
               "SecurityGroupIds" : [{ "Ref" : "AnsibleIntSecGroup" }],
               "SubnetId" :{"Fn::Select": ["0",{"Ref":"Subnets"}]},
-              "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+              "ImageId" : {"Ref":"ImageId"},
               "InstanceType" : {"Ref" : "InstanceType" },
               "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
                   "#!/bin/bash \n",
@@ -104,7 +107,13 @@
                   "ln -s /usr/local/bin/pip /usr/bin/pip \n",
                   "pip install ansible \n"
               ]
-              ]}}
+              ]}},
+              "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sdb",
+                        "Ebs": {"VolumeSize": "20"}
+                    }
+              ]                
         }
     }
 },
