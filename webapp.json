@@ -3,14 +3,15 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "",
     "Parameters": {
-     "InstanceName" : {
-         "Description" : "Name of the instance deployed.",
-         "Type" : "CommaDelimitedList"
-     },
       "KeyName" : {
           "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
           "Type" : "AWS::EC2::KeyPair::KeyName",
           "ConstraintDescription" : "Must be a valid EC2 key pair."
+      },
+      "ImageId": {
+          "Description": "",
+          "Type":"AWS::EC2::Image::Id",
+          "Default":""
       },
       "InstanceType" : {
           "Description" : "Type of EC2 instance to launch.",
@@ -30,17 +31,25 @@
           "Type" : "String",
           "Default" : ""
       },
+      "Function": {
+          "Description": "Function of instance",
+          "Type": "String",
+          "Default": ""
+      },
+      "POC": {
+          "Description": "Point of contact",
+          "Type" : "String",
+          "Default": "Batman"
+      },
+      "Security" : {
+          "Description" : "Security info",
+          "Type" : "String",
+          "Default" : "007"
+      },
       "Subnet" : {
           "Description" : "Valid subnet within the VPC",
           "Type" : "CommaDelimitedList"
       }
-    },
-    "Mappings": {
-        "RegionMap" : {
-            "us-east-1" : {
-                "AMI" : "ami-6869aa05"
-            }
-        }
     },
     "Conditions": {
         "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
@@ -53,13 +62,16 @@
             "Condition" : "CreateProdResources",
             "Properties" : {
                 "Tags" : [
-                    {"Key":"InstanceName", "Value" : {"Ref":"InstanceName"},
+                    {"Key":"InstanceName", "Value" : {"Ref":"InstanceName"}},
+                    {"Key":"POC", "Value":{"Ref":"POC"} },
+                    {"Key":"Security", "Value":{"Ref":"Security"} },
+                    {"Key":"Function", "Value":{"Ref":"Function"} },                    
                     {"Key":"Environment", "Value":{"Ref":"Environment"} }
                 ],
                 "KeyName" : { "Ref" : "KeyName" },
                 "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
                 "SubnetId" : { "Fn::Select" : ["0",{"Ref":"Subnet"}]},
-                "ImageId" : { "Fn::FindInMap" : ["RegionMap", { "Ref" : "AWS::Region"},"AMI"]},
+                "ImageId" : { "Ref": "ImageId" },
                 "InstanceType" : {"Ref" : "InstanceType" },
                 "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
                     "#!/bin/bash \n",
