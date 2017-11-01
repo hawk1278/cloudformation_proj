@@ -1,0 +1,23 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Configuration rule to ensure Application tag is populated.",
+    "Resources": {
+        "ConfigRuleForInstanceTags": {
+            "Type": "AWS::Config::ConfigRule",
+            "Properties": {
+                "ConfigRuleName": "required-tags2",
+                "Description": "Checks to see if resource has Application tag",
+                "InputParameters": {
+                    "tag1Key": "Application"
+                },
+                "Scope": {
+                    "ComplianceResourceTypes": ["AWS::EC2::Instance"]
+                },
+                "Source": {
+                    "Owner":"AWS",
+                    "SourceIdentifier":"REQUIRED_TAGS"
+                }
+            }
+        }
+    }
+}
