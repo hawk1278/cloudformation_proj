@@ -1,0 +1,35 @@
+---
+- name: Create ElasticLoad Balancer
+  hosts: local
+  gather_facts: False
+  become: False
+  vars:
+    elb_name: test-elb
+    elb_scheme: internal
+    elb_state: present
+    elb_instances: 
+    - i-00cb08e9c489b10b7
+    - i-06577edb6235c4e10
+    elb_zones: 
+    - "us-east-1c"
+    - "us-east-1a"
+    elb_listeners: { }
+    elb_healtch_check: { }
+
+  tasks:
+  - name: Launch load balancer
+    elb_classic_lb:
+    name: "{{ elb_name }}"
+    scheme: "{{ elb_scheme }}"
+    state: "{{ elb_state }}"
+    instance_ids: 
+    - "{{ item[instances] }}"
+    listeners: "{{ elb_listner }}"
+    healthcheck: "{{ elb_healch_check }}"
+    zones:
+    - "{{ item }}"
+    
+
+
+
+

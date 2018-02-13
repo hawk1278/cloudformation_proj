@@ -1,7 +1,7 @@
 
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "",
+    "Description": "Infrastructure CloudFormation template",
     "Parameters": {
       "KeyName" : {
           "Description" : "Name of existing EC2 key pair to enable SSH access to instances.",
@@ -9,52 +9,51 @@
           "ConstraintDescription" : "Must be a valid EC2 key pair."
       },
       "ImageId": {
-          "Description": "",
+          "Description": "AMI id to use for this instance.",
           "Type":"AWS::EC2::Image::Id",
           "Default":""
       },
       "InstanceType" : {
-          "Description" : "Type of EC2 instance to launch.",
+          "Description" : "Size of EC2 instance to launch.",
           "Type": "String",
           "Default" : "t2.micro",
-          "AllowedValues" : ["t2.micro"],
+          "AllowedValues" : ["t2.micro","m3.medium"],
           "ConstraintDescription" : "Must be a valid EC2 instance type."
       },
       "Environment" : {
-          "Description" : "Environment the stack is deployed to such as prodution, test, or development.",
+          "Description" : "Environment the resource is deployed to such (ie. prod, test, or dev).",
           "Type" : "String",
           "Default" : "dev",
-          "AllowedValues" : ["DEV","TEST","PROD"]
+          "AllowedValues" : ["dev","prod"]
       },
       "SecurityGroup" : {
           "Description": "Security group id for the instance.",
           "Type" : "String",
-          "Default" : ""
+          "Default" : "sg-1bd50b7e"
       },
-      "Function": {
-          "Description": "Function of instance",
+      "Team": {
+          "Description": "The team the resource belongs to.",
           "Type": "String",
-          "Default": ""
+          "Default": "SS-INF"
       },
       "POC": {
           "Description": "Point of contact",
           "Type" : "String",
-          "Default": "Batman"
+          "Default": "ro1423"
       },
-      "Security" : {
-          "Description" : "Security info",
+      "Backup" : {
+          "Description" : "Does the instance need to be backed up?",
           "Type" : "String",
-          "Default" : "007"
+          "Default" : "False"
       },
       "Subnet" : {
-          "Description" : "Valid subnet within the VPC",
+          "Description" : "Valid subnet within the VPC.",
           "Type" : "CommaDelimitedList"
       }
     },
     "Conditions": {
         "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
-        "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "dev"]},
-        "CreateTestResoures" : {"Fn::Equals" : [ {"Ref": "Environment"}, "test"]}        
+        "CreateDevResources" : {"Fn::Equals" : [ {"Ref": "Environment"}, "dev"]}
     },
     "Resources": {
         "Instance01" : {
@@ -62,25 +61,17 @@
             "Condition" : "CreateProdResources",
             "Properties" : {
                 "Tags" : [
-                    {"Key":"InstanceName", "Value" : {"Ref":"InstanceName"}},
+                    {"Key":"Name", "Value" : {"Ref":"Name"}},
                     {"Key":"POC", "Value":{"Ref":"POC"} },
-                    {"Key":"Security", "Value":{"Ref":"Security"} },
-                    {"Key":"Function", "Value":{"Ref":"Function"} },                    
+                    {"Key":"Backup", "Value":{"Ref":"Backup"} },
+                    {"Key":"Team", "Value":{"Ref":"Team"} },                    
                     {"Key":"Environment", "Value":{"Ref":"Environment"} }
                 ],
                 "KeyName" : { "Ref" : "KeyName" },
                 "SecurityGroupIds" : [{ "Ref" : "SecurityGroup" }],
                 "SubnetId" : { "Fn::Select" : ["0",{"Ref":"Subnet"}]},
                 "ImageId" : { "Ref": "ImageId" },
-                "InstanceType" : {"Ref" : "InstanceType" },
-                "UserData" : {"Fn::Base64": {"Fn::Join" : ["",[
-                    "#!/bin/bash \n",
-                    "yum update -y aws-cfn-bootstrap \n",
-                    "/opt/aws/bin/cfn-init -s ", {"Ref":"AWS::StackName"},
-                    "  -r Instance01",
-                    "  --region ", { "Ref":"AWS::Region" },"\n"
-                ]
-                ]}}
+                "InstanceType" : {"Ref" : "InstanceType" }
             }
         }
 },
